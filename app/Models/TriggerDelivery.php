@@ -25,6 +25,9 @@ class TriggerDelivery extends Model
         'knowledge_entry_id',
         'retry_count',
         'next_retry_at',
+        'prompt_token',
+        'delivery_url',
+        'opened_at',
     ];
 
     protected $casts = [
@@ -33,6 +36,7 @@ class TriggerDelivery extends Model
         'delivered_at' => 'datetime',
         'responded_at' => 'datetime',
         'next_retry_at' => 'datetime',
+        'opened_at' => 'datetime',
         'retry_count' => 'integer',
     ];
 

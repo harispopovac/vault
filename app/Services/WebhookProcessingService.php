@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
+use App\Jobs\OpenBrowserTabJob;
 use Exception;
 
 class WebhookProcessingService
@@ -226,13 +228,28 @@ class WebhookProcessingService
 
                 foreach ($targetUsers as $user) {
                     if (!$testMode) {
-                        TriggerDelivery::create([
+                        // Generate unique token for this delivery
+                        $token = Str::random(32);
+
+                        $delivery = TriggerDelivery::create([
                             'trigger_id' => $trigger->id,
-                            'target_user_id' => $user->id,
+                            'target_user_id' => $user['id'], // Fixed: access array key instead of object property
                             'github_event_type' => $event,
                             'github_payload' => $payload,
                             'github_delivery_id' => $deliveryId,
                             'status' => 'pending',
+                            'prompt_token' => $token,
+                            'delivery_url' => url("/prompt/{$token}"),
+                        ]);
+
+                        // Trigger browser tab opening
+                        dispatch(new OpenBrowserTabJob($delivery));
+
+                        Log::info('Trigger delivery created and browser tab triggered', [
+                            'delivery_id' => $delivery->id,
+                            'trigger' => $trigger->name,
+                            'user_id' => $user['id'],
+                            'prompt_url' => $delivery->delivery_url
                         ]);
                     }
                     $deliveriesCreated++;

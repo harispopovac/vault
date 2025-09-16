@@ -2,7 +2,17 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Media\SignedMediaController;
+use App\Http\Controllers\PromptController;
 
+
+// Prompt display routes (not domain-specific)
+Route::get('/prompt/{token}', [PromptController::class, 'show'])->name('prompt.show');
+Route::post('/prompt/{token}', [PromptController::class, 'store'])->name('prompt.store');
+
+// Test page for browser tab notifications
+Route::get('/test-notifications', function () {
+    return view('test-notifications');
+})->name('test.notifications');
 
 Route::middleware('web')->group(function () {
     Route::domain(env('LANDING_PAGE_URL'))->group(function () {

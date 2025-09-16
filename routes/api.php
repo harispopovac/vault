@@ -77,6 +77,9 @@ Route::prefix('v1')->group(function () {
             Route::delete('cache', [WebhookController::class, 'clearCache']);
         });
 
+        // Notification Stream (Server-Sent Events)
+        Route::get('notifications/stream', [NotificationStreamController::class, 'stream']);
+
     });
 });
 
