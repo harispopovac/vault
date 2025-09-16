@@ -1,0 +1,18 @@
+{
+  "name": "colors-module-frontend",
+  "version": "1.0.0",
+  "description": "Frontend module for colors",
+  "main": "index.js",
+  "scripts": {
+    "build": "vite build",
+    "serve": "vite"
+  },
+  "dependencies": {
+    "vue": "^3.2.0",
+    "vuetify": "^3.0.0"
+  },
+  "devDependencies": {
+    "vite": "^2.0.0"
+  }
+}
+

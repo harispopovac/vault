@@ -1,0 +1,20 @@
+{
+    "name": "files-management/files-management-module",
+    "description": "Module for files management",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "FilesManagement\\FilesManagementModule\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "FilesManagement\\FilesManagementModule\\FilesManagementServiceProvider"
+            ]
+        }
+    },
+    "require": {
+        "illuminate/support": "^11.0"
+    }
+}

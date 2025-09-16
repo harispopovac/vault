@@ -1,0 +1,19 @@
+{
+    "name": "maps-module-frontend",
+    "version": "1.0.0",
+    "description": "Reusable Leaflet map components (AddressMap, UserMapView, BaseLeafletMap)",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "serve": "vite"
+    },
+    "dependencies": {
+        "vue": "^3.2.0",
+        "vuetify": "^3.0.0",
+        "leaflet": "^1.9.4"
+    },
+    "devDependencies": {
+        "vite": "^2.0.0"
+    }
+}

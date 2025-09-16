@@ -1,0 +1,24 @@
+{
+    "name": "staff-roster-module-frontend",
+    "version": "1.0.0",
+    "description": "Frontend components for Staff Roster Management Module",
+    "main": "index.js",
+    "scripts": {
+        "dev": "echo 'This is a component library - install in your main project'",
+        "build": "echo 'This is a component library - install in your main project'"
+    },
+    "keywords": [
+        "vue",
+        "roster",
+        "staff",
+        "management",
+        "vuexy"
+    ],
+    "author": "Your Name",
+    "license": "MIT",
+    "peerDependencies": {
+        "vue": "^3.0.0",
+        "vuetify": "^3.0.0",
+        "axios": "^1.0.0"
+    }
+}

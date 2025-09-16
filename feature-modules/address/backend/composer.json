@@ -1,0 +1,17 @@
+{
+    "name": "address/address-module",
+    "description": "Address feature module for the application",
+    "type": "library",
+    "autoload": {
+        "psr-4": {
+            "Address\\AddressModule\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Address\\AddressModule\\AddressServiceProvider"
+            ]
+        }
+    }
+}

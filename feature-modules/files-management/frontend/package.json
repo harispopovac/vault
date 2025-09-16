@@ -1,0 +1,10 @@
+{
+    "name": "files-module-frontend",
+    "version": "1.0.0",
+    "description": "Files module frontend components",
+    "main": "index.js",
+    "dependencies": {
+        "vue": "^3.0.0",
+        "axios": "^1.0.0"
+    }
+}

@@ -1,0 +1,24 @@
+{
+    "name": "shift-log-module-frontend",
+    "version": "1.0.0",
+    "description": "Shift Log Management Frontend Components for Vue 3",
+    "main": "index.js",
+    "type": "module",
+    "dependencies": {
+        "vue": "^3.4.0",
+        "vuetify": "^3.5.0",
+        "@vueuse/core": "^10.9.0",
+        "dayjs": "^1.11.10",
+        "lodash": "^4.17.21"
+    },
+    "devDependencies": {},
+    "keywords": [
+        "vue",
+        "vuetify",
+        "shift-log",
+        "time-tracking",
+        "roster"
+    ],
+    "author": "Template Team",
+    "license": "MIT"
+}

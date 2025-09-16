@@ -1,0 +1,24 @@
+{
+    "name": "shift-log/shift-log-module",
+    "description": "Shift Log Management Module for Laravel + Vue projects",
+    "type": "library",
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0",
+        "spatie/laravel-fractal": "^6.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ShiftLog\\ShiftLogModule\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "ShiftLog\\ShiftLogModule\\ShiftLogServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
