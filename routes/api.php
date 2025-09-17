@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\MeController;
+use App\Http\Controllers\NotificationStreamController;
 use App\Http\Controllers\PromptTemplatesController;
 use App\Http\Controllers\PromptsController;
 use App\Http\Controllers\RepositoriesController;
@@ -27,6 +28,9 @@ Route::prefix('v1')->group(function () {
 
     // Webhooks (public endpoints)
     Route::post('webhook/github', [WebhookController::class, 'github']);
+
+    // Notification Stream (Server-Sent Events) - for testing
+    Route::get('notifications/stream', [NotificationStreamController::class, 'stream']);
 
     Route::middleware('auth:sanctum')->group(function () {
         // Authentication
@@ -77,8 +81,6 @@ Route::prefix('v1')->group(function () {
             Route::delete('cache', [WebhookController::class, 'clearCache']);
         });
 
-        // Notification Stream (Server-Sent Events)
-        Route::get('notifications/stream', [NotificationStreamController::class, 'stream']);
 
     });
 });
