@@ -11,24 +11,8 @@ class NotificationStreamController extends Controller
 {
     public function stream(Request $request)
     {
-        $response = new StreamedResponse();
-        $response->headers->set('Content-Type', 'text/event-stream');
-        $response->headers->set('Cache-Control', 'no-cache');
-        $response->headers->set('Connection', 'keep-alive');
-        $response->headers->set('Access-Control-Allow-Origin', '*');
-        $response->headers->set('Access-Control-Allow-Headers', 'Authorization');
-
-        $response->setCallback(function () {
-            // Disable time limit and output buffering
-            set_time_limit(0);
-            if (ob_get_level()) {
-                ob_end_clean();
-            }
-
-            $user = Auth::user();
-
-            // For testing: use dummy user ID if not authenticated
-            $userId = $user ? $user->id : 1;
+        return response()->stream(function() {
+            $userId = 1; // Fixed user ID for testing
 
             // Send initial connection message
             echo "data: " . json_encode([
@@ -36,18 +20,13 @@ class NotificationStreamController extends Controller
                 'user_id' => $userId,
                 'timestamp' => now()->toISOString()
             ]) . "\n\n";
-
-            if (ob_get_level()) {
-                ob_flush();
-            }
             flush();
 
-            // Check for browser tab triggers immediately
+            // Check for existing trigger
             $cacheKey = "browser_tab_trigger:{$userId}";
             $trigger = Cache::get($cacheKey);
 
             if ($trigger) {
-                // Send the browser tab opening instruction
                 echo "data: " . json_encode([
                     'type' => 'browser_tab',
                     'action' => 'open',
@@ -57,33 +36,14 @@ class NotificationStreamController extends Controller
                     'repository' => $trigger['repository'],
                     'event_type' => $trigger['event_type']
                 ]) . "\n\n";
-
-                // Clear the trigger
-                Cache::forget($cacheKey);
-
-                if (ob_get_level()) {
-                    ob_flush();
-                }
                 flush();
+                Cache::forget($cacheKey);
             }
 
-            // Keep connection alive with heartbeats
-            $heartbeatCounter = 0;
-            while (!connection_aborted() && $heartbeatCounter < 30) {
-                // Send heartbeat every 10 seconds
-                if ($heartbeatCounter % 5 == 0) {
-                    echo "data: " . json_encode([
-                        'type' => 'heartbeat',
-                        'timestamp' => now()->toISOString()
-                    ]) . "\n\n";
+            // Simple loop for checking triggers
+            for ($i = 0; $i < 20; $i++) { // Reduced to 40 seconds max
+                if (connection_aborted()) break;
 
-                    if (ob_get_level()) {
-                        ob_flush();
-                    }
-                    flush();
-                }
-
-                // Check for new triggers every iteration
                 $trigger = Cache::get($cacheKey);
                 if ($trigger) {
                     echo "data: " . json_encode([
@@ -95,20 +55,27 @@ class NotificationStreamController extends Controller
                         'repository' => $trigger['repository'],
                         'event_type' => $trigger['event_type']
                     ]) . "\n\n";
-
+                    flush();
                     Cache::forget($cacheKey);
+                }
 
-                    if (ob_get_level()) {
-                        ob_flush();
-                    }
+                // Send heartbeat every 5 iterations (10 seconds)
+                if ($i % 5 == 0 && $i > 0) {
+                    echo "data: " . json_encode([
+                        'type' => 'heartbeat',
+                        'timestamp' => now()->toISOString()
+                    ]) . "\n\n";
                     flush();
                 }
 
                 sleep(2);
-                $heartbeatCounter++;
             }
-        });
-
-        return $response;
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Headers' => 'Authorization',
+        ]);
     }
 }

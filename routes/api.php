@@ -32,6 +32,36 @@ Route::prefix('v1')->group(function () {
     // Notification Stream (Server-Sent Events) - for testing
     Route::get('notifications/stream', [NotificationStreamController::class, 'stream']);
 
+    // Simple test endpoint
+    Route::get('test-sse', function() {
+        return response()->stream(function() {
+            echo "data: " . json_encode(['type' => 'test', 'message' => 'hello']) . "\n\n";
+            flush();
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+        ]);
+    });
+
+    // Notifications test
+    Route::get('notifications-test', function() {
+        return response()->stream(function() {
+            echo "data: " . json_encode(['type' => 'connected', 'user_id' => 1]) . "\n\n";
+            flush();
+
+            for ($i = 0; $i < 5; $i++) {
+                sleep(2);
+                echo "data: " . json_encode(['type' => 'heartbeat', 'count' => $i]) . "\n\n";
+                flush();
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+        ]);
+    });
+
     Route::middleware('auth:sanctum')->group(function () {
         // Authentication
         Route::post('logout', [AuthController::class, 'logout']);
