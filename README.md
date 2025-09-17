@@ -41,3 +41,4 @@ Testing SSE connection
 SSE connection fixed - browser tab notifications should work now
 Testing browser tab with improved SSE
 Testing browser tab with active SSE connection
+Fresh SSE connection test - browser tab should open now
