@@ -39,3 +39,4 @@ npm run build
 Fixed SSE connection issue
 Testing SSE connection
 SSE connection fixed - browser tab notifications should work now
+Testing browser tab with improved SSE
