@@ -46,3 +46,4 @@ Testing browser tab with guided process
 Final test - browser tab should open with working SSE!
 SUCCESS! Browser tab notifications working with fixed SSE!
 Testing fixed prompt page - no more errors!
+Testing prompt form submission - CSRF exemption added!
