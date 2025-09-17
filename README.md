@@ -43,3 +43,4 @@ Testing browser tab with improved SSE
 Testing browser tab with active SSE connection
 Fresh SSE connection test - browser tab should open now
 Testing browser tab with guided process
+Final test - browser tab should open with working SSE!
