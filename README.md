@@ -38,3 +38,4 @@ npm run build
 🎉 Browser tab notification system implemented
 Fixed SSE connection issue
 Testing SSE connection
+SSE connection fixed - browser tab notifications should work now
