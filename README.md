@@ -48,3 +48,4 @@ SUCCESS! Browser tab notifications working with fixed SSE!
 Testing fixed prompt page - no more errors!
 Testing prompt form submission - CSRF exemption added!
 Testing fixed form submission and window close handlers!
+Fixed status constraint - form submission should work now\!
