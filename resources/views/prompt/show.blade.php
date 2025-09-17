@@ -59,17 +59,17 @@
                 <v-card v-if="!completed" class="mx-auto elevation-12" max-width="800">
                     <v-card-title class="text-h4 pa-6 text-center">
                         <v-icon size="large" class="mr-3" color="primary">mdi-lightbulb</v-icon>
-                        {{ trigger.name || 'Knowledge Capture' }}
+                        @{{ trigger.name || 'Knowledge Capture' }}
                     </v-card-title>
 
                     <v-card-subtitle class="text-center pb-4">
                         <v-chip color="primary" variant="outlined" class="mr-2">
                             <v-icon start>mdi-source-repository</v-icon>
-                            {{ getRepoName() }}
+                            @{{ getRepoName() }}
                         </v-chip>
                         <v-chip color="secondary" variant="outlined">
                             <v-icon start>mdi-source-commit</v-icon>
-                            {{ delivery.github_event_type }}
+                            @{{ delivery.github_event_type }}
                         </v-chip>
                     </v-card-subtitle>
 
