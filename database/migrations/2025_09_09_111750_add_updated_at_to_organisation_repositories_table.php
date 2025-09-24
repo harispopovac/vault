@@ -11,9 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('organisation_repositories', function (Blueprint $table) {
-            $table->timestampTz('updated_at')->nullable()->after('created_at');
-        });
+        if (Schema::hasTable('organisation_repositories')) {
+            Schema::table('organisation_repositories', function (Blueprint $table) {
+                if (!Schema::hasColumn('organisation_repositories', 'updated_at')) {
+                    $table->timestampTz('updated_at')->nullable()->after('created_at');
+                }
+            });
+        }
     }
 
     /**
@@ -21,8 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('organisation_repositories', function (Blueprint $table) {
-            $table->dropColumn('updated_at');
-        });
+        if (Schema::hasTable('organisation_repositories') && Schema::hasColumn('organisation_repositories', 'updated_at')) {
+            Schema::table('organisation_repositories', function (Blueprint $table) {
+                $table->dropColumn('updated_at');
+            });
+        }
     }
 };

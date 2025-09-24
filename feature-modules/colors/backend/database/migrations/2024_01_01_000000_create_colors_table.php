@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('colors', function (Blueprint $table) {
             $table->id();
-            $table->uuid('uuid')->default(DB::raw('gen_random_uuid()'));
+            $table->uuid('uuid');
             $table->string('name', 15)->nullable();
             $table->char('dark_text', 10)->nullable();
             $table->char('dark_bg', 10)->nullable();

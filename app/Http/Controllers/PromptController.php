@@ -18,7 +18,7 @@ class PromptController extends Controller
             abort(404, 'Prompt not found or expired');
         }
 
-        if ($delivery->status === 'completed') {
+        if ($delivery->status === 'responded') {
             return view('prompt.completed', compact('delivery'));
         }
 
@@ -45,8 +45,8 @@ class PromptController extends Controller
     {
         $delivery = TriggerDelivery::where('prompt_token', $token)->first();
 
-        if (!$delivery || $delivery->status === 'completed') {
-            return response()->json(['error' => 'Invalid or completed prompt'], 400);
+        if (!$delivery || $delivery->status === 'responded') {
+            return response()->json(['error' => 'Invalid or already completed prompt'], 400);
         }
 
         // For demo purposes, just save the raw request data
@@ -54,7 +54,7 @@ class PromptController extends Controller
 
         // Save the response
         $delivery->update([
-            'status' => 'completed',
+            'status' => 'responded',
             'responded_at' => now(),
             'response_data' => $validatedData
         ]);

@@ -1,0 +1,172 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop, dev ]
+  pull_request:
+    branches: [ main, develop, dev ]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: [8.2, 8.3]
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vault_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, pgsql, pdo_pgsql
+        coverage: xdebug
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Copy environment file
+      run: cp .env.example .env
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Install NPM dependencies
+      run: npm ci
+
+    - name: Build assets
+      run: npm run build
+
+    - name: Generate application key
+      run: php artisan key:generate
+
+    - name: Set up database environment
+      run: |
+        echo "DB_CONNECTION=pgsql" >> .env
+        echo "DB_HOST=localhost" >> .env
+        echo "DB_PORT=5432" >> .env
+        echo "DB_DATABASE=vault_test" >> .env
+        echo "DB_USERNAME=postgres" >> .env
+        echo "DB_PASSWORD=postgres" >> .env
+
+    - name: Run database migrations
+      run: php artisan migrate --force
+
+    - name: Seed test data
+      run: php artisan db:seed --class=TestDataSeeder
+
+    - name: Run PHPUnit tests
+      run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  static-analysis:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Run PHPStan
+      run: |
+        if [ -f phpstan.neon ]; then
+          vendor/bin/phpstan analyse
+        else
+          echo "PHPStan configuration not found, skipping static analysis"
+        fi
+
+    - name: Run PHP CS Fixer (dry run)
+      run: |
+        if [ -f .php-cs-fixer.php ]; then
+          vendor/bin/php-cs-fixer fix --dry-run --diff
+        else
+          echo "PHP CS Fixer configuration not found, skipping code style check"
+        fi
+
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Run security audit
+      run: composer audit
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install NPM dependencies
+      run: npm ci
+
+    - name: Run Jest tests
+      run: |
+        if [ -f jest.config.js ] || [ -f package.json ] && grep -q '"test"' package.json; then
+          npm test
+        else
+          echo "No frontend tests configured, skipping"
+        fi
+
+    - name: Run ESLint
+      run: |
+        if [ -f .eslintrc.js ] || [ -f .eslintrc.json ]; then
+          npm run lint
+        else
+          echo "ESLint not configured, skipping"
+        fi
+
+    - name: Type check
+      run: |
+        if [ -f tsconfig.json ]; then
+          npm run type-check
+        else
+          echo "TypeScript not configured, skipping type check"
+        fi

@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
+
+        // Exempt prompt routes from CSRF for testing (accessed via ngrok)
+        $middleware->validateCsrfTokens(except: [
+            'prompt/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

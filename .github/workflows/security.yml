@@ -1,0 +1,161 @@
+name: Security & Dependencies
+
+on:
+  schedule:
+    # Run security checks daily at 6 AM UTC
+    - cron: '0 6 * * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Run Composer security audit
+      run: composer audit
+
+    - name: Check for outdated packages
+      run: composer outdated --direct
+
+  dependency-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install NPM dependencies
+      run: npm ci
+
+    - name: Run npm audit
+      run: npm audit --audit-level=moderate
+
+    - name: Check for outdated npm packages
+      run: npm outdated || true
+
+  code-quality:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Check PHP syntax
+      run: find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" | xargs -n 1 php -l
+
+    - name: Run PHP CodeSniffer (if configured)
+      run: |
+        if [ -f phpcs.xml ] || [ -f phpcs.xml.dist ]; then
+          vendor/bin/phpcs || echo "PHP CodeSniffer issues found"
+        else
+          echo "PHP CodeSniffer not configured"
+        fi
+
+    - name: Run PHPMD (if configured)
+      run: |
+        if [ -f phpmd.xml ]; then
+          vendor/bin/phpmd app text phpmd.xml || echo "PHPMD issues found"
+        else
+          echo "PHPMD not configured"
+        fi
+
+  test-coverage:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vault_coverage_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: 8.2
+        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, pgsql, pdo_pgsql
+        coverage: xdebug
+
+    - name: Install dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Configure application
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+        echo "DB_CONNECTION=pgsql" >> .env
+        echo "DB_HOST=localhost" >> .env
+        echo "DB_PORT=5432" >> .env
+        echo "DB_DATABASE=vault_coverage_test" >> .env
+        echo "DB_USERNAME=postgres" >> .env
+        echo "DB_PASSWORD=postgres" >> .env
+
+    - name: Run migrations
+      run: php artisan migrate --force
+
+    - name: Generate test coverage report
+      run: vendor/bin/phpunit --coverage-html=coverage --coverage-clover=coverage.xml
+
+    - name: Check minimum coverage threshold
+      run: |
+        coverage=$(php -r "
+        \$xml = simplexml_load_file('coverage.xml');
+        \$metrics = \$xml->project->metrics;
+        \$coverage = (\$metrics['coveredstatements'] / \$metrics['statements']) * 100;
+        echo round(\$coverage, 2);
+        ")
+
+        echo "Current coverage: $coverage%"
+
+        # Set minimum coverage threshold (adjust as needed)
+        min_coverage=70
+
+        if (( $(echo "$coverage < $min_coverage" | bc -l) )); then
+          echo "❌ Coverage $coverage% is below minimum threshold of $min_coverage%"
+          exit 1
+        else
+          echo "✅ Coverage $coverage% meets minimum threshold of $min_coverage%"
+        fi
+
+    - name: Upload coverage to artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: coverage/

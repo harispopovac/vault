@@ -191,6 +191,7 @@ CREATE TABLE role_permissions (
 
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
+    customer_id UUID DEFAULT gen_random_uuid(),
     account_type VARCHAR(10) NOT NULL DEFAULT 'standard',
     CHECK (account_type IN ('sysadmin', 'standard')),
     fname VARCHAR(100) NOT NULL,
@@ -216,7 +217,11 @@ CREATE TABLE users (
     mfa_default VARCHAR(10),
     CHECK (mfa_default IN ('totp', 'sms', 'email')),
     role_id INT REFERENCES roles(id),
+    organisation_id BIGINT REFERENCES organisations(id),
     marketing_consent BOOLEAN NOT NULL DEFAULT FALSE,
+    github_id VARCHAR(100) UNIQUE,
+    github_username VARCHAR(255),
+    github_avatar_url TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT current_timestamp,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
@@ -224,6 +229,7 @@ CREATE TABLE users (
 CREATE INDEX idx_users_email ON users (email);
 CREATE INDEX idx_users_phone ON users (phone);
 CREATE INDEX idx_users_created_at ON users (created_at);
+CREATE INDEX idx_users_github_id ON users (github_id);
 
 -- -------------------------------- --
 -- ORGANISATION & SITES             --
@@ -316,8 +322,12 @@ CREATE TABLE repositories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     github_id BIGINT UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255),
     owner_id BIGINT NOT NULL,
-    webhook_secret VARCHAR(255) NOT NULL,
+    organisation_id BIGINT REFERENCES organisations(id) ON DELETE CASCADE,
+    webhook_secret VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_synced_at TIMESTAMPTZ,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -378,6 +388,116 @@ CREATE TABLE knowledge_entry_feedback (
     created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
     UNIQUE (knowledge_entry_id, user_id)
 );
+
+--
+-- Table for storing prompt templates for knowledge capture
+--
+CREATE TABLE prompt_templates (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    template_fields JSONB NOT NULL DEFAULT '[]',
+    organisation_id BIGINT REFERENCES organisations(id) ON DELETE CASCADE,
+    created_by BIGINT REFERENCES users(id),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+    updated_at TIMESTAMPTZ
+);
+
+--
+-- Table for storing prompts (instances of prompt templates)
+--
+CREATE TABLE prompts (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    field_definitions JSONB NOT NULL DEFAULT '{}',
+    organisation_id BIGINT REFERENCES organisations(id) ON DELETE CASCADE,
+    created_by BIGINT REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+    updated_at TIMESTAMPTZ
+);
+
+--
+-- Table for storing webhook triggers that open browser tabs
+--
+CREATE TABLE triggers (
+    id BIGSERIAL PRIMARY KEY,
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    prompt_id BIGINT REFERENCES prompts(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    github_events JSONB NOT NULL DEFAULT '[]',
+    event_filters JSONB NOT NULL DEFAULT '{}',
+    target_type VARCHAR(50) NOT NULL DEFAULT 'all',
+    target_config JSONB NOT NULL DEFAULT '{}',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+    updated_at TIMESTAMPTZ
+);
+
+--
+-- Table for tracking individual trigger deliveries
+--
+CREATE TABLE trigger_deliveries (
+    id BIGSERIAL PRIMARY KEY,
+    trigger_id BIGINT REFERENCES triggers(id) ON DELETE CASCADE,
+    target_user_id BIGINT NOT NULL,
+    github_event_type VARCHAR(50) NOT NULL,
+    github_payload JSONB NOT NULL DEFAULT '{}',
+    github_delivery_id VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    prompt_token VARCHAR(32) UNIQUE,
+    delivery_url TEXT,
+    delivered_at TIMESTAMPTZ,
+    opened_at TIMESTAMPTZ,
+    responded_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    response_data JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+    updated_at TIMESTAMPTZ
+);
+
+--
+-- Table for storing repository collaborators (GitHub users with access)
+--
+CREATE TABLE repository_collaborators (
+    id BIGSERIAL PRIMARY KEY,
+    repository_id UUID REFERENCES repositories(id) ON DELETE CASCADE,
+    github_user_id BIGINT NOT NULL,
+    github_username VARCHAR(255),
+    github_avatar_url TEXT,
+    github_email VARCHAR(255),
+    permission_level VARCHAR(20) NOT NULL DEFAULT 'read',
+    vault_role_id INT REFERENCES roles(id),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_synced_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT current_timestamp,
+    updated_at TIMESTAMPTZ,
+    UNIQUE (repository_id, github_user_id)
+);
+
+-- Add indexes for performance
+CREATE INDEX idx_repositories_github_id ON repositories (github_id);
+CREATE INDEX idx_repositories_organisation_id ON repositories (organisation_id);
+CREATE INDEX idx_repositories_is_active ON repositories (is_active);
+
+CREATE INDEX idx_prompts_organisation_id ON prompts (organisation_id);
+CREATE INDEX idx_prompts_created_by ON prompts (created_by);
+
+CREATE INDEX idx_triggers_repository_id ON triggers (repository_id);
+CREATE INDEX idx_triggers_prompt_id ON triggers (prompt_id);
+CREATE INDEX idx_triggers_is_active ON triggers (is_active);
+
+CREATE INDEX idx_trigger_deliveries_trigger_id ON trigger_deliveries (trigger_id);
+CREATE INDEX idx_trigger_deliveries_target_user_id ON trigger_deliveries (target_user_id);
+CREATE INDEX idx_trigger_deliveries_status ON trigger_deliveries (status);
+CREATE INDEX idx_trigger_deliveries_prompt_token ON trigger_deliveries (prompt_token);
+CREATE INDEX idx_trigger_deliveries_created_at ON trigger_deliveries (created_at);
+
+CREATE INDEX idx_repository_collaborators_repository_id ON repository_collaborators (repository_id);
+CREATE INDEX idx_repository_collaborators_github_user_id ON repository_collaborators (github_user_id);
+CREATE INDEX idx_repository_collaborators_is_active ON repository_collaborators (is_active);
 
 -- -------------------------------- --
 -- OPERATING DATA                   --

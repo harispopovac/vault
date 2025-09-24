@@ -132,7 +132,7 @@
                     <v-card-actions class="pa-6">
                         <v-btn
                             variant="outlined"
-                            @click="window.close()"
+                            @click="skipForm"
                             class="mr-4"
                         >
                             Skip for now
@@ -160,7 +160,7 @@
                         <v-btn
                             color="primary"
                             size="large"
-                            @click="window.close()"
+                            @click="closeWindow"
                             class="px-8"
                         >
                             <v-icon start>mdi-close</v-icon>
@@ -170,6 +170,22 @@
                 </v-card>
             `,
             methods: {
+                skipForm() {
+                    // Try to close the window, if it fails just hide the content
+                    if (window.opener || window.parent !== window) {
+                        try {
+                            window.close();
+                        } catch (e) {
+                            // If close fails, just hide the content
+                            document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h2>You can close this tab</h2><p>Thank you for your time!</p></div>';
+                        }
+                    } else {
+                        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial;"><h2>You can close this tab</h2><p>Thank you for your time!</p></div>';
+                    }
+                },
+                closeWindow() {
+                    this.skipForm();
+                },
                 async submitResponse() {
                     this.loading = true
                     try {
